@@ -1,0 +1,8 @@
+%ITP 110, profile 605: year day longitude(E+) latitude(N+) ndepths
+2019  201.00141  -141.2515  73.7451    4 0
+%year day pressure(dbar) temperature(C) salinity oxygen(umol/kg)
+2019  201.00665  730    0.4357   34.7922  271.4658
+2019  201.00574  732    0.4335   34.7927  271.5392
+2019  201.00337  734    0.4306   34.7933  271.5757
+2019  201.00221  736    0.4265   34.7940  271.5317
+%endofdat
