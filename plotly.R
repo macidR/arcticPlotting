@@ -26,9 +26,9 @@ datlist <- list.files( pattern = "\\.dat$", recursive = T )
 fdata <- NULL
 
 # set max dbars to read 
-max_depth <- 220 
+max_depth <- 700 
 # set if you want to skip some levels per dat file to keep the data points lower, enable 'ENABLE SKIP' line in loop below
-#skip_nr <- 4
+skip_nr <- 4
 
 # loop through dats
 for(i in 1:length(datlist)) {
@@ -47,8 +47,8 @@ for(i in 1:length(datlist)) {
     if(is.integer(length(txdata[txdata$pressure.dbar. <= max_depth,]$temperature.C.))){
       # select observations with lower depth than max depth
       txdata <- txdata[txdata$pressure.dbar. <= max_depth,]
-      #ENABLE SKIP#
-      # if(length(txdata$temperature.C.) > 1){txdata <- txdata[seq(1,length(txdata$temperature.C.),by = skip_nr),]}
+      #ENABLE SKIP, start at remainder of i%%skipnr
+      if(length(txdata$temperature.C.) > 1){txdata <- txdata[seq(i%%skip_nr,length(txdata$temperature.C.),by = skip_nr),]}
       # copy temp to temp data frame
       tdata$tempC <- as.numeric(txdata$temperature.C.)
       # copy - depth (dbar) to create depth (m)
@@ -105,10 +105,23 @@ if(range_lon > range_lat) {
 }
 
 # get bathy data for area.. R so powerful one line bam:
-bathy_data <- melt(unclass( getNOAA.bathy(lon1-3, lon2+3, lat1, lat2, resolution = 5)))
+bathy_data <- melt(unclass( getNOAA.bathy(-180, 180, 89, 90, resolution = 6)))
+
+# gets to much lon points around northern latitudes
+#bathy_data <- bathy_data[seq(1,length(bathy_data$value), 100),]
+bathy_unique <- unique(bathy_data$Var2)
+bathy_points_per_radius <- round((90 - bathy_unique) * 50 * pi)
+bathy_current_ppr <- length(bathy_data[bathy_data$Var2 == bathy_unique[1],]$value)
+
+bathy_points_seq <- NULL  
+for(i in 1:length(bathy_unique)) {
+  bathy_points_seq <- c(bathy_points_seq, seq(i * 3600 - 3600, i * 3600, by = round(bathy_current_ppr / bathy_points_per_radius[i])))
+}
+bathy_data_backup <- bathy_data
+bathy_data <- bathy_data[bathy_points_seq,]
 
 # funky stuff to make fit, will clean up once I figure out how to handle seperate color scale for this data, round to 10meters, put in 1-n range for z axis scaling
-bathy_data$z <- round(bathy_data$value / 10,0)
+bathy_data$z <- round(bathy_data$value / 25,0)
 bathy_data$z <- bathy_data$z - min(bathy_data$z) + 1
 # put highest bathy point below max depth
 bathy_data$z <- bathy_data$z - (max_depth + max(bathy_data$z))
@@ -152,9 +165,9 @@ fdata <- fdata[fdata$tempC < 2,]
 p <- plot_ly() %>% 
   add_markers(data = fdata, x = ~x, y = ~y, z = ~depth, color = ~tempC, name = ~name, showlegend = F) %>%
   #add_markers(data = fdata, x = ~x, y = ~y, z = ~depth, color = ~tempC, name = ~name, showlegend = F) %>% 
-  add_markers(inherit = F, data = bathy_data, x = ~x, y = ~y, z = ~z, marker = list( 
+  add_markers(inherit = F, data = bathy_data, x = ~x, y = ~y, z = ~z, name = ~value, showlegend = F, marker = list( 
               color = "#C3C3C3", name = "")) %>%
-  layout( title = "WHOI ITP Buoy 119 Temperatures 6-220m + Bathymetry",
+  layout( title = "WHOI ITP Buoy 116 Temperatures 6-700m + Bathymetry",
           scene = list(xaxis = list(title = 'UTM x (lon)', range = range_cx),
                       yaxis = list(title = 'UTM y (lat)', range = range_cy),
                       zaxis = list(title = 'Depth (m)')),
